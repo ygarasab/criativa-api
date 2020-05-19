@@ -1,3 +1,6 @@
+
+SET client_encoding = 'UTF8';
+
 create table marca(
 
     id_marca serial primary key,
@@ -113,7 +116,7 @@ create table item_entrada_estoque(
 insert into cliente (nome_cliente) values ('Cliente Avulso');
 
 
-insert into medida (nome_medida) values ('metros');
-insert into medida (nome_medida) values ('centímetros');
-insert into medida (nome_medida) values ('unidades');
-insert into medida (nome_medida) values ('pacotes');
+insert into medida (nome_medida, unitario) values ('metros', false);
+insert into medida (nome_medida, unitario) values ('centímetros', false);
+insert into medida (nome_medida, unitario) values ('unidades', true);
+insert into medida (nome_medida, unitario) values ('pacotes', true);

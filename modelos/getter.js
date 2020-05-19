@@ -22,198 +22,274 @@ class Get {
 
     }
 
+      /**
+     * Executa query :/
+     * 
+     * @param {String} query query a ser realizado
+     * @returns {Object | false} resposta à requisição
+     */
+    async executaQuery(query){
+
+        let promise = new Promise(
+         
+        (solve, reject) => {
+
+        this.db.query(query, (erro, resposta) => {
+
+            if(erro){
+                console.log("[ ERRO ]  "+erro.message)
+                reject(erro)
+            }
+            else solve(resposta)
+
+        } )
+
+        }
+        )
+
+        try {
+            const resposta = await promise;
+            return resposta;
+        }
+        catch (_) {
+            return false;
+        }
+
+    }
+
+    /**
+     * 
+     * Realiza uma busca numa tabela
+     * 
+     * @param {String} tabela tabela investigada
+     * @param {Object} condicoes condições a serem satisfeitas
+     * @param {String | Number} condicoes.* 
+     * @returns {Object[] | false} resultado da busca
+     */
+    async busca(tabela, condicoes){
+
+        let dadosParaCondicao = this.parseDadosParaWhere(condicoes)
+
+        let query = `select * from ${tabela} where ${dadosParaCondicao}`
+
+        let resposta = await this.executaQuery(query);
+
+        return resposta && resposta.rowCount > 0 ? resposta.rows : false;
+
+
+    }
+
+    /**
+     * 
+     * Realiza uma busca numa tabela
+     * 
+     * @param {String} tabela tabela investigada
+     * @param {Number} id condições a serem satisfeitas
+     * @returns {Object[] | false} resultado da busca
+     */
+    async buscaItemPorId(tabela, id){
+
+        let query = `select * from ${tabela}_view where id_${tabela} = ${id}`
+
+        let resposta = await this.executaQuery(query);
+
+        return resposta && resposta.rowCount > 0 ? resposta.rows[0] : false;
+
+
+    }
+
+    async listaTabela(tabela){
+
+        let query = `select * from ${tabela}`
+
+        let resposta = await this.executaQuery(query);
+
+        return resposta ? resposta.rows : false
+        
+    }
+
     /**
      * 
      * @param {String} tabela
      * @param {Response} res 
      */
-    list(tabela, res){
+    async executa_lista(tabela){
 
         console.log("[ GET ]  Listando tabela "+ tabela);
 
-        this.db.query("select * from "+tabela, (err, dbRes) => {
+        return await this.listaTabela(tabela)
+
+    }
+
+    async listaRelacional(tabelaA){
+
+        let tabelaB = this.relacoes[tabelaA]
 
         
-            
 
-            res.send(dbRes.rows);
+        let query = `select ${tabelaA}.*, count(${tabelaB}.*) from ${tabelaA}
+                    left join ${tabelaB} using(id_${tabelaA})
+                    group by id_${tabelaA}
+                    order by id_${tabelaA}`
 
-        })
+        let resposta = await this.executaQuery(query)
+
+        return resposta ? resposta.rows : false
+
+    }
+
+
+    async carregaProduto(id){
+
+        let query = `select produto.*, nome_marca, nome_fornecedor from produto 
+        join marca using(id_marca)
+        join fornecedor using(id_fornecedor)
+        where id_produto = ${id}`
+
+        let resposta = await this.executaQuery(query);
+
+        return resposta ? resposta.rows : false
 
     }
 
 
     /**
      * 
-     * @param {Object} data 
-     * @param {Response} res 
+     * @param {Number} id
      */
-    produto(data, res){
+    async executa_carrega_produto(id){
 
         console.log("[ GET ]  Reunindo dados de produto");
         
-
-        let id = data.id
-
-        if("codigo" in data){
-
-    
-        } else if ( ! ("id" in data)) res.send('error')
-
-        this.db.query(
-            
-            `select produto.*, nome_marca, nome_fornecedor from produto 
-                join marca using(id_marca)
-                join fornecedor using(id_fornecedor)
-                where id_produto = ${id}`,
-
-            (error,produto) => {
-
-
-                res.send(produto.rows[0])
-                
-            }
-
-        )
+        return await this.carregaProduto(id)
 
     }
 
-    busca(data, res){
+    async buscaProduto(chave){
+
+        let query = `select produto.*, nome_medida from produto 
+                    join medida using(id_medida)
+                    where (codigo::varchar = '${chave}' )
+                    OR (nome_produto ilike '%${chave}%' )`
+
+        let resultado = await this.executaQuery(query)
+
+        return resultado ? resultado.rows : false
+
+    }
+
+    async executa_busca(chave){
 
         console.log("[ GET ]  Buscando produtos");
 
-        let chave = data.chave
+        return await this.buscaProduto(chave)  
 
-        this.db.query(
-            `select produto.*, nome_medida from produto 
-            join medida using(id_medida)
-            where (codigo::varchar = '${chave}' )
-            OR (nome_produto ilike '%${chave}%' )`,
-            (error,produtos) => {
-
-                if(error) console.log(error)
-                else res.send(produtos.rows)
-                
-            }
-        )
 
     }
 
-    coletaOptionsProdutos(res){
+    async coletaOptionsProdutos(){
+
+        let query =  `select id_produto as value, nome_produto as text, unitario
+        from produto join medida using(id_medida)
+        order by text`
+
+        let resultado = await this.executaQuery(query)
+
+
+        return resultado ? resultado.rows : false
+
+
+    }
+
+    async executa_coleta_options_produtos(){
 
         console.log("[ GET ]  Coetando opções de produtos para carga")
 
-        this.db.query(
-            `select id_produto as value, nome_produto as text, unitario
-            from produto join medida using(id_medida)
-            order by text`,
+        return await this.coletaOptionsProdutos()
 
-            (error,options) => {
+    }
 
-                if(error) console.log(error)
-                else{
-                    
-                    res.send(options.rows)
-                }
-                
-            }
-        )
+    async coletaOptions(tabela){
+
+        let add = tabela == 'medida' ? ", unitario " : ""
+
+        let query = `select id_${tabela} as value, nome_${tabela} as text ${add}
+        from ${tabela} order by text`
+
+        let resultado = await this.executaQuery(query)
+
+        return resultado ? resultado.rows : false
 
     }
 
  
-    coletaOptions(tabela, res){
+    async executa_coleta_options(tabela){
 
-        console.log("[ GET ]  Coetando opções de "+tabela)
+        console.log("[ GET ]  Coletando opções de "+tabela)
 
-        let add = tabela == 'medida' ? ", unitario " : ""
-
-        this.db.query(
-            `select id_${tabela} as value, nome_${tabela} as text ${add}
-            from ${tabela} order by text
-        `,
-
-            (error,options) => {
-
-                if(error) console.log(error)
-                else{
-
-            
-                    res.send(options.rows)
-                }
-                
-            }
-        )
+        return await this.coletaOptions(tabela)
     
     }
 
-    listaRelacional(tabelaA, res){
+    
 
-        let tabelaB = this.relacoes[tabelaA]
+    async executa_relaciona(tabelaA){
 
         console.log("[ GET ]  Coletando linhas e relações da tabela "+tabelaA)
 
-        this.db.query(
-            `select ${tabelaA}.*, count(${tabelaB}.*) from ${tabelaA}
-            left join ${tabelaB} using(id_${tabelaA})
-            group by id_${tabelaA}
-            order by id_${tabelaA}`, (_, resultado) => {
-
-                res.send(resultado.rows)
-
-            }
-        )
+        return await this.listaRelacional(tabelaA)
 
     }
 
-    produtoVenda(data, res){
+    async produtoParaVenda(codigo){
+
+        let query =  `select codigo, id_produto, nome_produto, estoque, valor_produto, nome_medida, unitario
+        from produto join medida using(id_medida)
+        where codigo = ${codigo}`
+
+        let resultado = await this.executaQuery(query)
+
+        return resultado ? resultado.rows : false        
+
+    }
+
+    async executa_produto_para_venda(codigo){
 
         console.log("[ GET ]  Verificando produto para venda")
-
-        this.db.query(
-            `select codigo, id_produto, nome_produto, estoque, valor_produto, nome_medida, unitario
-                from produto join medida using(id_medida)
-                where codigo = ${data.codigo}` , 
-            
-            (err, resultado) => {
-    
-                res.send(resultado.rows)
-            }
-        )
-
+        return await this.produtoParaVenda(codigo)
+        
     }
 
 
-    carregaItem(tabela, id, res){
+
+    async executa_carrega_item(tabela, id){
 
         console.log(`[ GET ]  Carregando item ${id} data tabela ${tabela}`)
 
-        this.db.query(
-            `select * from ${tabela}_view where id_${tabela} = ${id}`,
-            (err, resultado) => {
-                if(err)console.log(err)
-                res.send(resultado.rows[0])
-            }
-        )
+        return await this.buscaItemPorId(tabela, id)
 
     }
 
-    listaDependentes(tabela, coluna, valor, res){
+    async listaDependentes(tabela, coluna, valor){
 
         console.log(`[ GET ]  Carregando itens de ${tabela} baseado em ${coluna}`);
 
         let pref = ['compra','entrada_estoque'].includes(tabela) ? 'data' : 'nome'
 
-        this.db.query(
-            `select id_${tabela}, ${pref}_${tabela} from ${tabela} where ${coluna} = ${valor}`,
-            (err, resultado) => {
+        let query = `select id_${tabela}, ${pref}_${tabela} from ${tabela} where ${coluna} = ${valor}`
 
-                if(err)console.log(err)
-               
-                res.send(resultado.rows)
-            }
-        )
+        let resposta = await this.executaQuery(query)
+
+        return resposta ? resposta.rows : false
         
+
+    }
+
+    async executa_lista_dependentes(tabela, coluna, valor){
+
+        console.log(`[ GET ]  Carregando itens de ${tabela} baseado em ${coluna}`);
+
+        return this.listaDependentes(tabela, coluna, valor)
 
     }
 

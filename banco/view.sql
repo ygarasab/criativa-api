@@ -1,7 +1,7 @@
 create view marca_view as 
 select id_marca, nome_marca, count(id_produto)
 from marca
-join produto using(id_marca)
+left join produto using(id_marca)
 group by id_marca;
 
 

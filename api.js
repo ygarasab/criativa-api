@@ -39,85 +39,90 @@ class API {
 
         .use(cors())
 
-        .get("/lista/:tabela", (req, res) => this.get.list(req.params.tabela, res))
+        .get("/:comando/", async (req, res) => {
+
+            
+
+            try{
+                res.send( await this.get["executa_"+req.params.comando]() )
+            }
+            catch(_){
+
+                res.send("Comando inválido")
+                
+            }
+        })
+
+        .get("/:comando/:parametro", async (req, res) => {
+
+            
+
+            try{
+                res.send( await this.get["executa_"+req.params.comando](req.params.parametro) )
+            }
+            catch(_){
+
+                res.send("Comando inválido")
+                
+            }
+        })
+
+        .get("/:comando/:parametro1/:parametro2", async (req, res) => {
+
+            try{
+                res.send( await this.get["executa_"+req.params.comando](req.params.parametro1, req.params.parametro2) )
+            }
+            catch(_){
+
+                res.send("Comando inválido")
+                
+            }
+        })
+
+        .get("/:comando/:tabela/:coluna/:valor", async (req,res) => {
         
-        .get("/relaciona/:tabela", 
-            (req, res) => this.get.listaRelacional(req.params.tabela, res))
-        
-        .get("/item/:tabela/:id",
-            (req, res) => this.get.carregaItem(req.params.tabela, req.params.id, res))
+            try{
+                res.send( await this.get["executa_"+req.params.comando](req.params.tabela, req.params.coluna, req.params.valor))
+            }
+            catch(_){
 
-        .get("/dependentes/:tabela/:coluna/:valor",
-            (req,res) => this.get.listaDependentes(req.params.tabela, req.params.coluna, req.params.valor, res))
+                res.send("Comando inválido")
+                
+            }
+        })
+  
+        .post("/:comando", async (req, res) => {
 
-        .get("/busca", (req, res) => this.get.busca(req.query, res) )
+            try{
+                res.send( await this.post["executa_"+req.params.comando](req.body))
+            }
+            catch(e){
+                console.log(e)
+                res.send("Comando inválido")
+                
+            }
+        })
 
-        .get("/options", (req, res) => this.get.coletaOptions(req.query.tabela, res))
+        .post("/:comando/:parametro", async (req, res) => {
+            
 
-        .get("/optionsProduto", (req, res) => this.get.coletaOptionsProdutos(res))
+            try{
+                res.send( await this.post["executa_"+req.params.comando](req.body, req.params.parametro) )
+            }
+            catch(_){
 
-        .get("/produto_venda", (req, res) => this.get.produtoVenda(req.query,res))
-        
-        
+                res.send("Comando inválido")
+                
+            }
+        })
 
-
-        .post("/insere/:tabela", (req, res) => this.post.insert(req.params.tabela,req.body, res))
-
-        .post("/entrada_estoque", (req, res) => this.adicionaEstoque(req.body, res))
-
-        .post("/realiza_compra", (req, res) => this.post.realizaCompra(req.body, res))
-
-        .post("/login", (req, res) => this.post.executaLogin(req.body, res))
-
-
-
-        .get("/produto", (req, res) => this.get.produto(req.query, res))
-        
-
-        
+    
 
         this.server.listen(this.port, _ => console.log(`[ CRT ]  Listening on port ${this.port}`))
 
     }
 
     
-
-
-    adicionaEstoque(data, res){
-
-        console.log("[ CRTV ] Adicionando produtos ao estoque");
-
-        this.db.query(
-
-            `insert into entrada_estoque (id_funcionario, id_entregador) 
-                values ('${data.id_funcionario}', '${data.id_entregador}') returning id_entrada_estoque`,
-
-            (_, returned) =>  {
-
-                let entradaId = returned.rows[0].id_entrada_estoque
-
-                let queries = ''
-
-                for(let item of data.itens)
-
-                    queries += 
-                        `insert into item_entrada_estoque (quantidade, id_produto, id_entrada_estoque)
-                            values(${item.quantidade},${item.id_produto}, ${entradaId});
-                        update produto set estoque = estoque + ${item.quantidade} where id_produto = ${item.id_produto};`                  
-                        
-                this.db.query(queries, _ => {
-
-                    res.send("Ok")
-
-                })
-
-                
-
-            }
-
-        );
-
-    }
 
 }
 
