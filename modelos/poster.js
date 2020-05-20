@@ -86,7 +86,7 @@ class Post {
      * 
      * @param {String} tabela tabela investigada
      * @param {Number} id condições a serem satisfeitas
-     * @returns {Object[] | false} resultado da busca
+     * @returns {Object | false} objeto buscado ou false
      */
     async buscaItemPorId(tabela, id){
 
@@ -241,6 +241,17 @@ class Post {
     }
     
 
+
+    /**
+     * 
+     * Inserção de dados com um tratamento de erros a mais
+     * 
+     * @param {Object} dados dados a serem inseridos
+     * @param {String | Number} dados.*
+     * @param {String} tabela tabela alvo da inserção
+     * 
+     * @returns {String} output da ação
+     */
     async insere(dados, tabela){
 
         let erros = {
@@ -274,6 +285,11 @@ class Post {
 
 
 
+    /**
+     * 
+     * @param {String} cpf cpf do cliente
+     * @returns {Number | false} id do cliente
+     */
     async pegaIdDoClientePeloCpf(cpf){
 
         let resultado = await this.busca("cliente", {cpf_cliente : cpf})
@@ -296,6 +312,16 @@ class Post {
 
     }
 
+
+    /**
+     * 
+     * @param {Object[]} itens itens comprados
+     * @param {Number} itens[].id_produto id do produto comprado
+     * @param {Number} itens[].quantidade quantidade do produto comprado
+     * @param {Number} idCompra id da compra
+     * 
+     * @returns {String} output da ação 
+     */
     async insereItensDaCompra(itens, idCompra){
 
         let queries = ''
@@ -314,6 +340,17 @@ class Post {
 
     }
 
+    /**
+     * 
+     * @param {Object} data dados da compra
+     * @param {Number} data.id_funcionario id do funcionario que vendeu
+     * @param {Number} data.valor_compra valor da compra
+     * @param {String} data.metodo_pagamento método de pagamento
+     * @param {Object[]} data.itens itens comprados
+     * @param {Number} cliente_id id do cliente que comprou
+     * 
+     * @returns {String} output da ação
+     */
     async finalizaCompra(data, cliente_id){
 
         let dadosInsert = {
@@ -336,6 +373,15 @@ class Post {
 
     }
     
+    /**
+     * 
+     * realiza o login do usuario
+     * 
+     * @param {Object} dadosDoUsuario 
+     * @param {String} dadosDoUsuario.*
+     * 
+     * @returns {Object | false} usuario
+     */
     async login(dadosDoUsuario){
 
         let resultado = await this.busca("funcionario", dadosDoUsuario)
@@ -343,6 +389,7 @@ class Post {
         return resultado ? resultado[0] : false
 
     }
+
 
     async executa_login(dados){
 
@@ -352,6 +399,16 @@ class Post {
 
     }
 
+
+    /**
+     * 
+     * @param {Object[]} itens itens addicionados
+     * @param {Number} itens[].id_produto id do produto adicionado
+     * @param {Number} itens[].quantidade quantidade do produto adicionado
+     * @param {Number} idEntrada id da entrada de estoque
+     * 
+     * @returns {String} output da ação 
+     */
     async adicionaItensDeEntradaDeEstoque(itens, idEntrada){
 
         let queries = ''
@@ -370,6 +427,16 @@ class Post {
 
     }
 
+    /**
+     * 
+     * Realiza uma entrada de estoque
+     * 
+     * @param {Number} funcionario id do funcionário que está realizando a entrada
+     * @param {Number} entregador id do entregador do estoque
+     * @param {Object{}} itens itens adicionados
+     * 
+     * @returns {String} output da ação
+     */
     async entradaEstoque(funcionario, entregador, itens){
 
         let dadosParaInsercao = {
@@ -395,6 +462,14 @@ class Post {
 
     }
 
+
+    /**
+     * 
+     * @param {Number} produto id do produto afetado
+     * @param {Number} quantidade quantidade retirada
+     * 
+     * @returns {String} output da ação
+     */
     async diminuiQuantidadeDeProduto(produto, quantidade){
 
         let query = `update produto set estoque = estoque - ${quantidade} where id_produto = ${produto};`
@@ -405,6 +480,15 @@ class Post {
         : "Falha ao diminuir quantidade de produto"
 
     }
+
+
+    /**
+     * 
+     * @param {Number} produto id do produto afetado
+     * @param {Number} quantidade quantidade adicionada
+     * 
+     * @returns {String} output da ação
+     */
 
     async aumentaQuantidadeDeProduto(produto, quantidade){
 
@@ -417,6 +501,12 @@ class Post {
 
     }
 
+
+    /**
+     * 
+     * @param {Number} idItem id do item de compra estornado
+     * @returns {String} output da ação
+     */
     async estornaItemCompra(idItem){
 
         let item = await  this.buscaItemPorId("item_compra",idItem)
@@ -425,10 +515,13 @@ class Post {
 
         ? "Item inválido"
 
+        : item.estornado
+
+        ? "Este item já foi estornado"
+
         : ! await this.update("item_compra", {estornado : true}, {id_item_compra : idItem})
 
         ? "Erro ao estornanr Item"
-
         : await this.aumentaQuantidadeDeProduto(item.id_produto, item.quantidade)
 
     }
@@ -443,13 +536,18 @@ class Post {
     }
 
 
+    /**
+     * 
+     * @param {Number} idCompra id da compra a ser estornada
+     * @returns {String} output da ação
+     */
     async estornaCompra(idCompra){
 
-        let itensDaCompra = this.busca("item_compra", {id_compra : idCompra})
+        let itensDaCompra = this.busca("item_compra", {id_compra : idCompra, estornado : false})
 
-        itensDaCompra.forEach( async item => await this.estornaItemCompra(item.id_item_compra) )
+        if(itensDaCompra) itensDaCompra.forEach( async item => await this.estornaItemCompra(item.id_item_compra) )
 
-        return "Ok"
+        return itensDaCompra ? "Ok" : "Essa compra não existe ou todos os seus itens ja foram estornados"
 
     }
 
@@ -462,6 +560,16 @@ class Post {
 
     }
 
+
+    /**
+     * 
+     * Cria uma relação de de pendencia hierárquica entre dois produtos
+     * 
+     * @param {Number} idPai id do produto pai
+     * @param {Number} idFilho id do produto filho
+     * @param {Number} razao relação quantida filho /  quantidade pai
+     * @returns {String} output da ação
+     */
     async criaSubproduto(idPai, idFilho, razao){
 
         let dadosInsert = {
@@ -487,6 +595,15 @@ class Post {
         return await this.criaSubproduto(dados.id_pai, dados.id_filho, dados.razao)
 
     }
+
+    /**
+     * 
+     * Transefere estoque de um produto pai para um produto filho, por meio de um vínculo pré existente
+     * 
+     * @param {Number} subproduto id da relação entre os produtos alvo
+     * @param {Number} quantidade quantidade retirada do produto pai
+     * @returns {String} output da ação
+     */
 
     async transfereParaSubproduto(subproduto, quantidade){
 
