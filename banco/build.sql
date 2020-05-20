@@ -76,6 +76,7 @@ create table item_compra(
 
     id_item_compra serial primary key,
     quantidade float,
+    estornado boolean default false,
 
     id_compra int references compra(id_compra),
     id_produto int references produto(id_produto)
@@ -111,6 +112,16 @@ create table item_entrada_estoque(
 
 );
 
+
+create table subproduto{
+
+    id_subproduto serial primary key,
+    razao float,
+
+    id_produto_pai int references produto(id_produto),
+    id_produto_filho in references produto(id_produto)
+
+}
 
 
 insert into cliente (nome_cliente) values ('Cliente Avulso');

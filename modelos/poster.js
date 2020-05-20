@@ -80,6 +80,25 @@ class Post {
 
     }
 
+    /**
+     * 
+     * Realiza uma busca numa tabela
+     * 
+     * @param {String} tabela tabela investigada
+     * @param {Number} id condições a serem satisfeitas
+     * @returns {Object[] | false} resultado da busca
+     */
+    async buscaItemPorId(tabela, id){
+
+        let query = `select * from ${tabela}_view where id_${tabela} = ${id}`
+
+        let resposta = await this.executaQuery(query);
+
+        return resposta && resposta.rowCount > 0 ? resposta.rows[0] : false;
+
+
+    }
+
      /**
      * 
      * Manipula dados para serem usados em inserção
@@ -140,6 +159,30 @@ class Post {
         return elementos
 
     }
+
+       /**
+     * 
+     * Atualiza uma tabela
+     * 
+     * @param {String} tabela tabela a ser alterada
+     * @param {Object} dados dados a serem inseridos
+     * @param {String |Number} dados.*
+     * @param {Object} condicoes condições de inserção
+     * @param {String | Number} condicoes.* 
+     * @returns {Object[] | false} resposta da requisição
+     */
+    async update(tabela, dados, condicoes){
+
+        let dadosParaUpdate = this.parseDadosParaUpdate(dados)
+        let dadosParaCondicao = this.parseDadosParaWhere(condicoes)
+
+        let query = `update ${tabela} set ${dadosParaUpdate} where ${dadosParaCondicao}`
+
+        return this.executaQuery(query);
+
+
+    }
+
 
     /**
      * 
@@ -349,6 +392,123 @@ class Post {
         console.log("[ PST ] Adicionando produtos ao estoque");
 
         return await this.entradaEstoque(dados.id_funcionario, dados.id_entregador, dados.itens)
+
+    }
+
+    async diminuiQuantidadeDeProduto(produto, quantidade){
+
+        let query = `update produto set estoque = estoque - ${quantidade} where id_produto = ${produto};`
+
+        return await this.executaQuery(query)
+
+        ? "Ok"
+        : "Falha ao diminuir quantidade de produto"
+
+    }
+
+    async aumentaQuantidadeDeProduto(produto, quantidade){
+
+        let query = `update produto set estoque = estoque + ${quantidade} where id_produto = ${produto};`
+
+        return await this.executaQuery(query)
+
+        ? "Ok"
+        : "Falha ao aumentar quantidade de produto"
+
+    }
+
+    async estornaItemCompra(idItem){
+
+        let item = await  this.buscaItemPorId("item_compra",idItem)
+
+        return !item 
+
+        ? "Item inválido"
+
+        : ! await this.update("item_compra", {estornado : true}, {id_item_compra : idItem})
+
+        ? "Erro ao estornanr Item"
+
+        : await this.aumentaQuantidadeDeProduto(item.id_produto, item.quantidade)
+
+    }
+
+    async executa_estorna_item_compra(idItem){
+
+        console.log("[ PST ] Estornando item de uma compra");
+        
+        return await this.estornaItemCompra(idItem)
+        
+
+    }
+
+
+    async estornaCompra(idCompra){
+
+        let itensDaCompra = this.busca("item_compra", {id_compra : idCompra})
+
+        itensDaCompra.forEach( async item => await this.estornaItemCompra(item.id_item_compra) )
+
+        return "Ok"
+
+    }
+
+
+    async executa_estorna_compra(idCompra){
+
+        console.log("[ PST ] Estornando compra")
+
+        return await this.estornaCompra(idCompra)
+
+    }
+
+    async criaSubproduto(idPai, idFilho, razao){
+
+        let dadosInsert = {
+
+            id_produto_pai : idPai,
+            id_produto_filho : idFilho,
+            razao : razao
+
+        }
+
+        return await this.insere(dadosInsert, "subproduto")
+
+        ? "Ok"
+        : "Falha na criação do subproduto"
+
+    }
+
+
+    async executa_cria_subproduto(dados){
+
+        console.log("[ PST ]  Criando subproduto")
+
+        return await this.criaSubproduto(dados.id_pai, dados.id_filho, dados.razao)
+
+    }
+
+    async transfereParaSubproduto(subproduto, quantidade){
+
+        let subproduto = await this.buscaItemPorId('subproduto', subproduto)
+
+        return !subproduto
+
+        ? "Subproduto Inexistente"
+
+        : await this.diminuiQuantidadeDeProduto(subproduto.id_produto_pai, quantidade)
+
+        ? await this.aumentaQuantidadeDeProduto(subproduto.id_produto_filho, quantidade * subproduto.razao)
+        : "Produto pai desprovido de estoque"
+
+
+    }
+
+    async executa_transfere_para_subproduto(dados){
+
+        console.log("[ PST ]  Transferindo para subproduto")
+
+        return await this.transfereParaSubproduto(dados.id_subproduto, dados.quantidade)
 
     }
 
