@@ -75,7 +75,7 @@ class Post {
 
         let resposta = await this.executaQuery(query);
 
-        return resposta && resposta.rowCount ? resposta.rows : false;
+        return resposta && resposta.rowCount > 0? resposta.rows : false;
 
 
     }
@@ -588,11 +588,23 @@ class Post {
     }
 
 
+
+    async verificaSeSuprodutoJaExiste(id_produto_pai, id_produto_filho){
+
+        return this.busca('subproduto', {id_produto_pai, id_produto_filho})
+        
+
+    }
+
+
     async executa_cria_subproduto(dados){
 
         console.log("[ PST ]  Criando subproduto")
 
-        return await this.criaSubproduto(dados.id_pai, dados.id_filho, dados.razao)
+        if(dados.id_pai == dados.id_filho) return "Impossível criar relação com dois produtos iguais"
+        else if(await this.verificaSeSuprodutoJaExiste(dados.id_pai, dados.id_filho))
+            return "Subproduto já existe"
+        else return await this.criaSubproduto(dados.id_pai, dados.id_filho, dados.razao)
 
     }
 
@@ -600,14 +612,14 @@ class Post {
      * 
      * Transefere estoque de um produto pai para um produto filho, por meio de um vínculo pré existente
      * 
-     * @param {Number} subproduto id da relação entre os produtos alvo
+     * @param {Number} id_subproduto id da relação entre os produtos alvo
      * @param {Number} quantidade quantidade retirada do produto pai
      * @returns {String} output da ação
      */
 
-    async transfereParaSubproduto(subproduto, quantidade){
+    async transfereParaSubproduto(id_subproduto, quantidade){
 
-        let subproduto = await this.buscaItemPorId('subproduto', subproduto)
+        let subproduto = (await this.busca("subproduto", {id_subproduto}))[0]
 
         return !subproduto
 
@@ -628,6 +640,7 @@ class Post {
         return await this.transfereParaSubproduto(dados.id_subproduto, dados.quantidade)
 
     }
+
 
 }
 

@@ -8,11 +8,13 @@ group by id_marca;
 
 
 create view produto_view as
-select produto.*, nome_fornecedor, nome_marca, nome_medida
+select produto.*, nome_fornecedor, unitario, nome_marca, nome_medida, count(id_subproduto) as subprodutos
 from produto
+left join subproduto on id_produto_pai = id_produto
 join fornecedor using(id_fornecedor)
 join marca using(id_marca)
 join medida using(id_medida)
+group by id_produto,unitario, nome_fornecedor, nome_marca, nome_medida
 order by id_produto;
 
 

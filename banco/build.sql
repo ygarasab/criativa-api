@@ -113,15 +113,15 @@ create table item_entrada_estoque(
 );
 
 
-create table subproduto{
+create table subproduto(
 
     id_subproduto serial primary key,
     razao float,
 
     id_produto_pai int references produto(id_produto),
-    id_produto_filho in references produto(id_produto)
+    id_produto_filho int references produto(id_produto)
 
-}
+);
 
 
 insert into cliente (nome_cliente) values ('Cliente Avulso');

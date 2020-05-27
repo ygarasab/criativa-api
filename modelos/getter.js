@@ -22,6 +22,52 @@ class Get {
 
     }
 
+    /**
+     * 
+     * Gera strings com key = valor
+     * 
+     * @param {Object} dados dados to parse
+     * @param {String | Number} dados.*
+     * @returns {String[]} lista de strings com igualdades
+     */
+    juntaDadosEmIgualdades(dados){
+
+        let elementos = []
+
+        for(let key in dados){
+
+            let sent
+
+            if(key == 'senha') sent = `senha = '${sha256(dados[key])}'`
+
+            else if( typeof dados[key] == 'number') sent = `${key} = ${dados[key]}`
+
+            else sent = `${key} = '${dados[key]}'`
+
+            elementos.push(sent)
+
+        }
+
+        return elementos
+
+    }
+
+       /**
+     * 
+     * Manipula dados para serem usados em condições
+     * 
+     * @param {Object} dados dados to parse
+     * @param {String | Number} dados.*
+     * @returns {String} string para condição
+     */
+    parseDadosParaWhere(dados){
+
+        let elementos = this.juntaDadosEmIgualdades(dados)
+
+        return elementos.join(" and ")
+
+    }
+
       /**
      * Executa query :/
      * 
@@ -270,6 +316,17 @@ class Get {
 
     }
 
+    async executa_carrega_subproduto(id_subproduto){
+
+        console.log(`[ GET ] Carregando subproduto ${id_subproduto}`)
+      
+        let subproduto = (await this.busca('subproduto',{id_subproduto}))[0]
+        let pai = (await this.busca('produto_view', {id_produto : subproduto.id_produto_pai}))[0]
+        let filho = (await this.busca('produto_view', {id_produto : subproduto.id_produto_filho}))[0]
+        return {subproduto, pai, filho}
+     
+    }
+
     async listaDependentes(tabela, coluna, valor){
 
         console.log(`[ GET ]  Carregando itens de ${tabela} baseado em ${coluna}`);
@@ -290,6 +347,14 @@ class Get {
         console.log(`[ GET ]  Carregando itens de ${tabela} baseado em ${coluna}`);
 
         return this.listaDependentes(tabela, coluna, valor)
+
+    }
+
+    async executa_lista_subprodutos(id_pai){
+
+        console.log(`[ GET ] listando subprodutos de ${id_pai}`)
+        let query = `select id_produto, razao,id_subproduto, nome_produto from subproduto join produto on id_produto = id_produto_filho where id_produto_pai = ${id_pai};`
+        return (await this.executaQuery(query)).rows
 
     }
 
