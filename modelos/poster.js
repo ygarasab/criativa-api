@@ -21,6 +21,9 @@ class Post {
      */
     async executaQuery(query){
 
+        console.log(query);
+        
+
         let promise = new Promise(
          
             (solve, reject) => {
@@ -90,7 +93,7 @@ class Post {
      */
     async buscaItemPorId(tabela, id){
 
-        let query = `select * from ${tabela}_view where id_${tabela} = ${id}`
+        let query = `select * from ${tabela} where id_${tabela} = ${id}`
 
         let resposta = await this.executaQuery(query);
 
@@ -526,11 +529,11 @@ class Post {
 
     }
 
-    async executa_estorna_item_compra(idItem){
+    async executa_estorna_item_compra(dados){
 
-        console.log("[ PST ] Estornando item de uma compra");
+        console.log("[ PST ]   Estornando item "+dados.id);
         
-        return await this.estornaItemCompra(idItem)
+        return await this.estornaItemCompra(dados.id)
         
 
     }
@@ -552,11 +555,11 @@ class Post {
     }
 
 
-    async executa_estorna_compra(idCompra){
+    async executa_estorna_compra(dados){
 
         console.log("[ PST ] Estornando compra")
 
-        return await this.estornaCompra(idCompra)
+        return await this.estornaCompra(dados.id_)
 
     }
 

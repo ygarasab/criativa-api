@@ -331,9 +331,7 @@ class Get {
 
         console.log(`[ GET ]  Carregando itens de ${tabela} baseado em ${coluna}`);
 
-        let pref = ['compra','entrada_estoque'].includes(tabela) ? 'data' : 'nome'
-
-        let query = `select id_${tabela}, ${pref}_${tabela} from ${tabela} where ${coluna} = ${valor}`
+        let query = `select * from ${tabela} where ${coluna} = ${valor}`
 
         let resposta = await this.executaQuery(query)
 

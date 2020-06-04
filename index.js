@@ -5,7 +5,7 @@ const bodyParser = require('body-parser')
 const { Client } = require('pg');
 const getter = require('./modelos/getter');
 const poster = require('./modelos/poster');
-const {config} = require('./config');
+const {databaseOptions} = require('./config');
 
 const urlParser = bodyParser.urlencoded({extended:false})
 
@@ -18,7 +18,7 @@ class API {
         this.app = express();
         this.server = http.createServer(this.app);
 
-        this.db = new Client(config)
+        this.db = new Client(databaseOptions)
 
 
         this.db.connect();

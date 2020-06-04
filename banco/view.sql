@@ -68,7 +68,7 @@ order by id_item_entrada_estoque;
 
 
 create view item_compra_view as
-select id_compra, id_produto as id_item_compra_view,
+select id_compra, estornado, id_item_compra as id_item_compra_view,
 concat(nome_produto, ' - ', quantidade,' ',nome_medida) as nome_item_compra_view
 from item_compra
 join produto using(id_produto)
